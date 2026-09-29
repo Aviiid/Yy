@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Countdowns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=Fredoka:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light dark;
+    --ink: #12343b;
+    --muted: #4f747b;
+    --field: #ffffff;
+    --field-line: rgba(18, 52, 59, .10);
+    --accent: #167a78;
+    --accent-ink: #ffffff;
+    --danger: #b4453f;
+    --btn: rgba(255, 255, 255, .62);
+    --btn-hover: #ffffff;
+    --shadow: 0 1px 0 rgba(18, 52, 59, .05), 0 8px 24px -12px rgba(18, 52, 59, .25);
+
+    /* pastel card colours: greens and blues that sit together */
+    --c0: #cff1df;  /* mint */
+    --c1: #cde8f8;  /* sky */
+    --c2: #c6efec;  /* aqua */
+    --c3: #e1f3cb;  /* pistachio */
+    --c4: #d4e1fa;  /* periwinkle */
+    --c5: #d3f0d4;  /* sage */
+
+    /* flip digits */
+    --flip: #ffffff;
+    --flip-low: #f2faf9;
+    --flip-ink: #12343b;
+    --flip-split: rgba(18, 52, 59, .16);
+
+    --font-ui: "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif;
+    --font-digit: "Fredoka", "Trebuchet MS", "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #e4f2f0;
+      --muted: #9dbdbb;
+      --field: #1f2e30;
+      --field-line: rgba(228, 242, 240, .14);
+      --accent: #63d3ca;
+      --accent-ink: #082423;
+      --danger: #ee8b84;
+      --btn: rgba(255, 255, 255, .09);
+      --btn-hover: rgba(255, 255, 255, .17);
+      --shadow: none;
+      --c0: #1e3b32; --c1: #1c3546; --c2: #1b3c3e;
+      --c3: #2a3b20; --c4: #202d4a; --c5: #22391f;
+      --flip: #0f2224;
+      --flip-low: #0c1c1e;
+      --flip-ink: #e4f2f0;
+      --flip-split: rgba(0, 0, 0, .45);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #e4f2f0; --muted: #9dbdbb; --field: #1f2e30; --field-line: rgba(228, 242, 240, .14);
+    --accent: #63d3ca; --accent-ink: #082423; --danger: #ee8b84;
+    --btn: rgba(255, 255, 255, .09); --btn-hover: rgba(255, 255, 255, .17); --shadow: none;
+    --c0: #1e3b32; --c1: #1c3546; --c2: #1b3c3e; --c3: #2a3b20; --c4: #202d4a; --c5: #22391f;
+    --flip: #0f2224; --flip-low: #0c1c1e; --flip-ink: #e4f2f0; --flip-split: rgba(0, 0, 0, .45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: transparent;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.5;
+    padding: 18px;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  /* ---------- add bar ---------- */
+  .add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    margin-bottom: 22px;
+    background: var(--field);
+    border: 1px solid var(--field-line);
+    border-radius: 32px;
+    box-shadow: var(--shadow);
+  }
+  .add .grow { flex: 1 1 180px; min-width: 0; }
+  .add .date-wrap { flex: 1 1 220px; min-width: 0; }
+  .add input {
+    width: 100%;
+    min-height: 46px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 18px;
+    background: color-mix(in srgb, var(--c0) 55%, transparent);
+  }
+  .add input::placeholder { color: var(--muted); opacity: .8; }
+  .hint { font-size: 12px; color: var(--muted); padding: 2px 0 0 18px; min-height: 18px; }
+  .add .btn-add { align-self: flex-start; }
+  .btn-add {
+    min-height: 46px;
+    padding: 0 26px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .btn-add:hover:not(:disabled) { filter: brightness(1.08); }
+  .btn-add:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ---------- masonry board ---------- */
+  .list { columns: 2 380px; column-gap: 16px; }
+  .card {
+    break-inside: avoid;
+    margin: 0 0 16px;
+    padding: 16px;
+    border-radius: 28px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+  }
+  .card.c0 { --card: var(--c0); } .card.c1 { --card: var(--c1); }
+  .card.c2 { --card: var(--c2); } .card.c3 { --card: var(--c3); }
+  .card.c4 { --card: var(--c4); } .card.c5 { --card: var(--c5); }
+
+  .card-head { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    flex: none;
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--field);
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 2px 0 rgba(18, 52, 59, .08);
+    transition: transform .15s;
+  }
+  .badge:hover { transform: rotate(-8deg) scale(1.06); }
+  .head-text { flex: 1; min-width: 0; }
+  .title {
+    width: 100%;
+    border: 2px solid transparent;
+    background: transparent;
+    border-radius: 12px;
+    padding: 1px 8px;
+    margin-left: -8px;
+    font-weight: 800;
+    font-size: 19px;
+  }
+  .title:hover { border-color: rgba(255, 255, 255, .6); }
+  .title:focus { outline: none; background: var(--field); border-color: transparent; }
+  .when { font-size: 13px; color: var(--muted); padding-left: 0; }
+  .head-side { display: flex; align-items: center; gap: 8px; flex: none; }
+  .pill {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 3px 12px;
+    border-radius: 999px;
+    background: var(--accent);
+    color: var(--accent-ink);
+  }
+  .swatch {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 3px solid var(--field);
+    cursor: pointer;
+    padding: 0;
+    background: conic-gradient(#8fdcbc, #8cc9ee, #7edcd6, #c3e78d, #a9bff0, #8fdcbc);
+  }
+  .swatch:hover { transform: scale(1.12); }
+
+  .card-body { container-type: inline-size; margin-top: 16px; }
+  .clock {
+    --h: clamp(1.9rem, calc(17cqi - .6rem), 4.2rem);
+    --w: calc(var(--h) * .7);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .9rem;
+    transition: opacity .4s;
+  }
+  .card.done .clock { opacity: .5; }
+  .unit { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .digits { display: flex; gap: 4px; }
+  .ulabel { font-size: 12px; font-weight: 500; color: var(--muted); }
+
+  .digit {
+    position: relative;
+    width: var(--w);
+    height: var(--h);
+    font-size: calc(var(--h) * .8);
+    perspective: 420px;
+    font-family: var(--font-digit);
+    font-weight: 600;
+    filter: drop-shadow(0 2px 0 rgba(18, 52, 59, .10));
+  }
+  .half, .flap {
+    position: absolute;
+    left: 0; right: 0;
+    height: 50%;
+    overflow: hidden;
+    background: var(--flip);
+  }
+  .top, .flap-top { top: 0; border-radius: .2em .2em 0 0; }
+  .bottom, .flap-bottom { bottom: 0; border-radius: 0 0 .2em .2em; background: var(--flip-low); }
+  .half span, .flap span {
+    position: absolute;
+    left: 0; right: 0;
+    height: 200%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--flip-ink);
+    line-height: 1;
+  }
+  .top span, .flap-top span { top: 0; }
+  .bottom span, .flap-bottom span { top: -100%; }
+  .flap { z-index: 3; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .flap-top { transform-origin: 50% 100%; }
+  .flap-bottom { transform-origin: 50% 0; transform: rotateX(90deg); }
+  .digit::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(50% - 1px);
+    height: 2px;
+    background: var(--flip-split);
+    z-index: 5;
+  }
+  .digit.flipping .flap-top { animation: fold .3s ease-in forwards; }
+  .digit.flipping .flap-bottom { animation: unfold .3s .3s ease-out forwards; }
+  @keyframes fold { to { transform: rotateX(-90deg); } }
+  @keyframes unfold { from { transform: rotateX(90deg); } to { transform: rotateX(0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .digit.flipping .flap-top, .digit.flipping .flap-bottom { animation: none; }
+    .badge, .swatch { transition: none; }
+  }
+
+  /* ---------- card footer ---------- */
+  .card-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+  .card-foot .spacer { flex: 1; }
+  .btn {
+    cursor: pointer;
+    border: 0;
+    background: var(--btn);
+    border-radius: 999px;
+    padding: 0 16px;
+    min-height: 36px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .btn:hover { background: var(--btn-hover); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { filter: brightness(1.08); background: var(--accent); }
+  .btn.danger { color: var(--danger); }
+  .edit-row { display: none; flex: 1 1 100%; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .card.editing .edit-row { display: flex; }
+  .edit-row input {
+    flex: 1 1 190px;
+    min-height: 40px;
+    border: 0;
+    border-radius: 999px;
+    padding: 0 16px;
+    background: var(--field);
+  }
+
+  .empty {
+    column-span: all;
+    text-align: center;
+    color: var(--muted);
+    padding: 40px 16px;
+    border: 2px dashed var(--field-line);
+    border-radius: 28px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="add">
+    <div class="grow">
+      <input type="text" id="newName" placeholder="What are you counting down to?" maxlength="60" autocomplete="off" aria-label="Event name">
+    </div>
+    <div class="date-wrap">
+      <input type="datetime-local" id="newDate" aria-label="Date and time">
+      <div class="hint" id="newHint"></div>
+    </div>
+    <button class="btn-add" id="addBtn" disabled>Add</button>
+  </div>
+
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+(function () {
+  var KEY = "countdowns.v1";
+  var EMOJIS = ["✈️", "🎂", "🎓", "🎉", "🌴", "💼", "🏁", "🎁", "🌸", "🏠", "🎧", "⭐"];
+  var COLORS = 6;
+  var reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- storage ---------- */
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(events)); } catch (e) {}
+  }
+
+  var events = load();
+  events.forEach(function (ev, i) {
+    if (typeof ev.color !== "number") ev.color = i % COLORS;
+    if (typeof ev.emoji !== "number") ev.emoji = i % EMOJIS.length;
+  });
+  var views = {};
+
+  /* ---------- helpers ---------- */
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+  function toLocalInput(ts) {
+    var d = new Date(ts - new Date(ts).getTimezoneOffset() * 60000);
+    return d.toISOString().slice(0, 16);
+  }
+
+  var longFmt = null, shortFmt = null;
+  try {
+    longFmt = new Intl.DateTimeFormat(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+    shortFmt = new Intl.DateTimeFormat(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch (e) {}
+  function fmt(ts, short) {
+    var f = short ? shortFmt : longFmt;
+    return f ? f.format(new Date(ts)) : new Date(ts).toLocaleString();
+  }
+
+  /* ---------- flip digit ---------- */
+  function Digit() {
+    var el = document.createElement("div");
+    el.className = "digit";
+    el.innerHTML =
+      '<div class="half top"><span></span></div>' +
+      '<div class="half bottom"><span></span></div>' +
+      '<div class="flap flap-top"><span></span></div>' +
+      '<div class="flap flap-bottom"><span></span></div>';
+    this.el = el;
+    this.topS = el.querySelector(".top span");
+    this.botS = el.querySelector(".bottom span");
+    this.fTopS = el.querySelector(".flap-top span");
+    this.fBotS = el.querySelector(".flap-bottom span");
+    this.v = null;
+    this.timer = null;
+  }
+  Digit.prototype.setAll = function (v) {
+    this.topS.textContent = this.botS.textContent = this.fTopS.textContent = this.fBotS.textContent = v;
+  };
+  Digit.prototype.set = function (v) {
+    if (v === this.v) return;
+    var old = this.v;
+    if (this.timer) { clearTimeout(this.timer); this.timer = null; this.el.classList.remove("flipping"); }
+    this.v = v;
+    if (old === null || reduceMotion) { this.setAll(v); return; }
+    var self = this;
+    this.setAll(v);
+    this.botS.textContent = old;
+    this.fTopS.textContent = old;
+    void this.el.offsetWidth;
+    this.el.classList.add("flipping");
+    this.timer = setTimeout(function () {
+      self.setAll(v);
+      self.el.classList.remove("flipping");
+      self.timer = null;
+    }, 620);
+  };
+
+  /* ---------- unit ---------- */
+  function Unit(label) {
+    this.el = document.createElement("div");
+    this.el.className = "unit";
+    this.wrap = document.createElement("div");
+    this.wrap.className = "digits";
+    var l = document.createElement("div");
+    l.className = "ulabel";
+    l.textContent = label;
+    this.el.appendChild(this.wrap);
+    this.el.appendChild(l);
+    this.digits = [];
+  }
+  Unit.prototype.set = function (n) {
+    var s = String(n);
+    while (s.length < 2) s = "0" + s;
+    while (this.digits.length < s.length) {
+      var d = new Digit();
+      this.digits.unshift(d);
+      this.wrap.insertBefore(d.el, this.wrap.firstChild);
+    }
+    while (this.digits.length > s.length) {
+      var x = this.digits.shift();
+      this.wrap.removeChild(x.el);
+    }
+    for (var i = 0; i < s.length; i++) this.digits[i].set(s[i]);
+  };
+
+  /* ---------- card ---------- */
+  function setColor(view) {
+    for (var i = 0; i < COLORS; i++) view.el.classList.remove("c" + i);
+    view.el.classList.add("c" + view.ev.color);
+  }
+
+  function buildCard(ev) {
+    var card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML =
+      '<div class="card-head">' +
+        '<button class="badge" title="Change icon" aria-label="Change icon"></button>' +
+        '<div class="head-text">' +
+          '<input class="title" type="text" maxlength="60" aria-label="Event name">' +
+          '<div class="when"></div>' +
+        '</div>' +
+        '<div class="head-side">' +
+          '<span class="pill" hidden>Time\u2019s up</span>' +
+          '<button class="swatch" title="Change color" aria-label="Change color"></button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-body"><div class="clock"></div></div>' +
+      '<div class="card-foot">' +
+        '<div class="edit-row">' +
+          '<input type="datetime-local" aria-label="New date and time">' +
+          '<button class="btn primary save">Save</button>' +
+          '<button class="btn cancel">Cancel</button>' +
+        '</div>' +
+        '<button class="btn change">Change date</button>' +
+        '<span class="spacer"></span>' +
+        '<button class="btn danger remove">Delete</button>' +
+      '</div>';
+
+    var view = {
+      ev: ev, el: card,
+      badge: card.querySelector(".badge"),
+      title: card.querySelector(".title"),
+      pill: card.querySelector(".pill"),
+      when: card.querySelector(".when"),
+      changeBtn: card.querySelector(".change"),
+      dateInput: card.querySelector(".edit-row input"),
+      units: {}
+    };
+
+    var clock = card.querySelector(".clock");
+    [["d", "Days"], ["h", "Hours"], ["m", "Min"], ["s", "Sec"]].forEach(function (u) {
+      var unit = new Unit(u[1]);
+      view.units[u[0]] = unit;
+      clock.appendChild(unit.el);
+    });
+
+    setColor(view);
+    view.badge.textContent = EMOJIS[ev.emoji % EMOJIS.length];
+    view.title.value = ev.name;
+    view.when.textContent = fmt(ev.at);
+
+    view.badge.addEventListener("click", function () {
+      ev.emoji = (ev.emoji + 1) % EMOJIS.length;
+      view.badge.textContent = EMOJIS[ev.emoji];
+      save();
+    });
+    card.querySelector(".swatch").addEventListener("click", function () {
+      ev.color = (ev.color + 1) % COLORS;
+      setColor(view);
+      save();
+    });
+    view.title.addEventListener("change", function () {
+      ev.name = view.title.value.trim() || "Untitled";
+      view.title.value = ev.name;
+      save();
+    });
+    view.title.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") view.title.blur();
+    });
+    view.changeBtn.addEventListener("click", function () {
+      view.dateInput.value = toLocalInput(ev.at > Date.now() ? ev.at : Date.now() + 86400000);
+      card.classList.add("editing");
+      view.dateInput.focus();
+    });
+    card.querySelector(".cancel").addEventListener("click", function () {
+      card.classList.remove("editing");
+    });
+    card.querySelector(".save").addEventListener("click", function () {
+      var t = new Date(view.dateInput.value).getTime();
+      if (isNaN(t)) return;
+      ev.at = t;
+      save();
+      card.classList.remove("editing");
+      render();
+    });
+    card.querySelector(".remove").addEventListener("click", function () {
+      events = events.filter(function (x) { return x.id !== ev.id; });
+      save();
+      render();
+    });
+
+    return view;
+  }
+
+  function updateView(view, now) {
+    var ev = view.ev;
+    var diff = ev.at - now;
+    var done = diff <= 0;
+    if (diff < 0) diff = 0;
+    var s = Math.floor(diff / 1000);
+    view.units.d.set(Math.floor(s / 86400));
+    view.units.h.set(Math.floor((s % 86400) / 3600));
+    view.units.m.set(Math.floor((s % 3600) / 60));
+    view.units.s.set(s % 60);
+    if (view.done !== done) {
+      view.done = done;
+      view.el.classList.toggle("done", done);
+      view.pill.hidden = !done;
+      view.changeBtn.textContent = done ? "Pick a new date" : "Change date";
+      view.changeBtn.classList.toggle("primary", done);
+    }
+  }
+
+  /* ---------- render ---------- */
+  var listEl = document.getElementById("list");
+
+  function render() {
+    var now = Date.now();
+    var sorted = events.slice().sort(function (a, b) {
+      var ad = a.at <= now, bd = b.at <= now;
+      if (ad !== bd) return ad ? 1 : -1;
+      return a.at - b.at;
+    });
+    listEl.innerHTML = "";
+    views = {};
+    if (!sorted.length) {
+      var e = document.createElement("div");
+      e.className = "empty";
+      e.textContent = "Nothing on your board yet. Add a name and a date above to start your first countdown.";
+      listEl.appendChild(e);
+      return;
+    }
+    sorted.forEach(function (ev) {
+      var v = buildCard(ev);
+      views[ev.id] = v;
+      listEl.appendChild(v.el);
+      updateView(v, now);
+    });
+  }
+
+  function tick() {
+    var now = Date.now();
+    for (var id in views) updateView(views[id], now);
+  }
+
+  /* ---------- add form ---------- */
+  var nameIn = document.getElementById("newName");
+  var dateIn = document.getElementById("newDate");
+  var hint = document.getElementById("newHint");
+  var addBtn = document.getElementById("addBtn");
+
+  function checkForm() {
+    var t = new Date(dateIn.value).getTime();
+    var ok = !isNaN(t);
+    addBtn.disabled = !ok;
+    hint.textContent = ok ? fmt(t, true) : "";
+  }
+  dateIn.addEventListener("input", checkForm);
+  dateIn.addEventListener("change", checkForm);
+
+  function add() {
+    var t = new Date(dateIn.value).getTime();
+    if (isNaN(t)) return;
+    events.push({
+      id: uid(),
+      name: nameIn.value.trim() || "Untitled",
+      at: t,
+      color: Math.floor(Math.random() * COLORS),
+      emoji: Math.floor(Math.random() * EMOJIS.length)
+    });
+    save();
+    nameIn.value = "";
+    dateIn.value = "";
+    checkForm();
+    render();
+  }
+  addBtn.addEventListener("click", add);
+  nameIn.addEventListener("keydown", function (e) { if (e.key === "Enter") add(); });
+
+  render();
+  setInterval(tick, 250);
+})();
+</script>
+</body>
+</html>
